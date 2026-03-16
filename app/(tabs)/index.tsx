@@ -1,9 +1,25 @@
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useRouter, Link } from "expo-router";
-import { ScreenContainer } from "@/components/screen-container";
-import { useAuth } from "@/lib/auth-context";
-import { useColors } from "@/hooks/use-colors";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+} from 'react-native';
+import { useRouter, Link } from 'expo-router';
+import { ScreenContainer } from '@/components/screen-container';
+import { useAuth } from '@/lib/auth-context';
+import { useColors } from '@/hooks/use-colors';
+import {
+  Trophy,
+  ShoppingBag,
+  Gift,
+  Settings as SettingsIcon,
+  Play,
+  Coins,
+  Zap,
+} from 'lucide-react-native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -12,78 +28,94 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer className="items-center justify-center">
-        <ActivityIndicator size="large" color={colors.primary} />
+      <ScreenContainer className="items-center justify-center bg-slate-950">
+        <ActivityIndicator size="large" color="#a855f7" />
       </ScreenContainer>
     );
   }
 
   if (!user && !userData) {
     return (
-      <ScreenContainer className="items-center justify-center">
+      <ScreenContainer className="items-center justify-center bg-slate-950">
         <TouchableOpacity
-          onPress={() => router.push("/login")}
-          className="bg-primary px-6 py-3 rounded-full"
+          onPress={() => router.push('/login')}
+          className="bg-purple-600 px-8 py-4 rounded-2xl shadow-lg"
         >
-          <Text className="text-background font-semibold">Sign In</Text>
+          <Text className="text-white font-black text-lg uppercase tracking-widest">
+            Sign In to Void
+          </Text>
         </TouchableOpacity>
       </ScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer className="p-4">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="gap-4">
+    <ScreenContainer containerClassName="bg-slate-950">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        className="p-6 gap-6"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View className="flex-row items-center justify-between mb-4">
           <View>
-            <Text className="text-3xl font-bold text-foreground">ABSORBIO</Text>
-            <Text className="text-muted text-sm">
-              Welcome back, {userData?.name || "Player"}
+            <Text className="text-4xl font-black text-white italic tracking-tighter">
+              ABSORBIO
+            </Text>
+            <Text className="text-purple-400 font-bold text-xs uppercase tracking-widest">
+              Welcome, {userData?.name || 'Cosmic Explorer'}
             </Text>
           </View>
           <Link href="/(tabs)/settings" asChild>
-            <TouchableOpacity className="bg-surface p-3 rounded-full">
-              <Text className="text-foreground text-lg">⚙️</Text>
+            <TouchableOpacity className="bg-white/5 border border-white/10 p-3 rounded-2xl">
+              <SettingsIcon color="#a855f7" size={24} />
             </TouchableOpacity>
           </Link>
         </View>
 
         {/* Stats Cards */}
-        <View className="gap-3">
-          <View className="flex-row gap-3">
+        <View className="gap-4">
+          <View className="flex-row gap-4">
             {/* Level Card */}
-            <View className="flex-1 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl p-4">
-              <Text className="text-white/70 text-xs font-semibold uppercase">
-                Level
-              </Text>
-              <Text className="text-white text-3xl font-bold">
+            <View className="flex-1 bg-purple-600/20 border border-purple-500/30 rounded-3xl p-5 shadow-lg">
+              <View className="flex-row items-center gap-2 mb-2">
+                <Zap color="#a855f7" size={16} />
+                <Text className="text-purple-300/60 text-[10px] font-black uppercase tracking-widest">
+                  Level
+                </Text>
+              </View>
+              <Text className="text-white text-4xl font-black italic">
                 {userData?.level || 1}
               </Text>
             </View>
 
             {/* Coins Card */}
-            <View className="flex-1 bg-gradient-to-br from-yellow-600 to-yellow-800 rounded-2xl p-4">
-              <Text className="text-white/70 text-xs font-semibold uppercase">
-                Coins
-              </Text>
-              <Text className="text-white text-3xl font-bold">
-                {userData?.coins || 0}
+            <View className="flex-1 bg-yellow-500/10 border border-yellow-500/30 rounded-3xl p-5 shadow-lg">
+              <View className="flex-row items-center gap-2 mb-2">
+                <Coins color="#EAB308" size={16} />
+                <Text className="text-yellow-500/60 text-[10px] font-black uppercase tracking-widest">
+                  Coins
+                </Text>
+              </View>
+              <Text className="text-white text-4xl font-black italic">
+                {userData?.coins?.toLocaleString() || 0}
               </Text>
             </View>
           </View>
 
           {/* XP Bar */}
-          <View className="bg-surface rounded-2xl p-4">
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-foreground text-sm font-semibold">
-                Experience
+          <View className="bg-white/5 border border-white/10 rounded-3xl p-5">
+            <View className="flex-row justify-between mb-3">
+              <Text className="text-purple-300 font-black text-[10px] uppercase tracking-widest">
+                Experience Progress
               </Text>
-              <Text className="text-muted text-xs">{userData?.xp || 0} XP</Text>
+              <Text className="text-purple-400/60 text-[10px] font-bold">
+                {userData?.xp || 0} / 200 XP
+              </Text>
             </View>
-            <View className="h-2 bg-border rounded-full overflow-hidden">
+            <View className="h-3 bg-slate-900 rounded-full overflow-hidden border border-white/5">
               <View
-                className="h-full bg-gradient-to-r from-purple-600 to-pink-600"
+                className="h-full bg-purple-600"
                 style={{
                   width: `${Math.min(((userData?.xp || 0) / 200) * 100, 100)}%`,
                 }}
@@ -92,55 +124,71 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Game Modes */}
-        <View className="gap-3 mt-4">
-          <Text className="text-foreground text-lg font-bold">Game Modes</Text>
-
+        {/* Play Button */}
+        <View className="mt-4">
           <Link href="/(tabs)/game" asChild>
-            <TouchableOpacity className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 items-center">
-              <Text className="text-white text-2xl font-bold">▶ Play Blackhole</Text>
-              <Text className="text-white/70 text-xs mt-1">Infinity Mode</Text>
+            <TouchableOpacity className="bg-purple-600 rounded-[2.5rem] p-8 items-center shadow-2xl border-b-4 border-purple-800 active:border-b-0 active:translate-y-1">
+              <View className="flex-row items-center gap-4">
+                <Play color="white" size={32} fill="white" />
+                <Text className="text-white text-3xl font-black italic tracking-tighter uppercase">
+                  Enter Void
+                </Text>
+              </View>
+              <Text className="text-purple-200/60 text-[10px] font-black uppercase tracking-[0.3em] mt-2">
+                Infinity Mode • Blackhole
+              </Text>
             </TouchableOpacity>
           </Link>
         </View>
 
         {/* Quick Actions */}
-        <View className="gap-3 mt-4">
-          <Text className="text-foreground text-lg font-bold">Quick Actions</Text>
+        <View className="gap-4 mt-4">
+          <Text className="text-purple-300/40 text-[10px] font-black uppercase tracking-[0.2em] ml-2">
+            Quick Access
+          </Text>
 
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-4">
             <Link href="/(tabs)/rewards" asChild>
-              <TouchableOpacity className="flex-1 bg-surface rounded-2xl p-4 items-center">
-                <Text className="text-2xl mb-2">🎁</Text>
-                <Text className="text-foreground text-xs font-semibold">Rewards</Text>
+              <TouchableOpacity className="flex-1 bg-white/5 border border-white/10 rounded-3xl p-5 items-center">
+                <View className="w-12 h-12 rounded-full bg-purple-600/20 items-center justify-center mb-3">
+                  <Gift color="#a855f7" size={24} />
+                </View>
+                <Text className="text-white text-[10px] font-black uppercase tracking-widest">
+                  Rewards
+                </Text>
               </TouchableOpacity>
             </Link>
 
             <Link href="/(tabs)/leaderboard" asChild>
-              <TouchableOpacity className="flex-1 bg-surface rounded-2xl p-4 items-center">
-                <Text className="text-2xl mb-2">🏆</Text>
-                <Text className="text-foreground text-xs font-semibold">
-                  Leaderboard
+              <TouchableOpacity className="flex-1 bg-white/5 border border-white/10 rounded-3xl p-5 items-center">
+                <View className="w-12 h-12 rounded-full bg-yellow-500/20 items-center justify-center mb-3">
+                  <Trophy color="#EAB308" size={24} />
+                </View>
+                <Text className="text-white text-[10px] font-black uppercase tracking-widest">
+                  Ranks
                 </Text>
               </TouchableOpacity>
             </Link>
 
             <Link href="/(tabs)/shop" asChild>
-              <TouchableOpacity className="flex-1 bg-surface rounded-2xl p-4 items-center">
-                <Text className="text-2xl mb-2">🛍️</Text>
-                <Text className="text-foreground text-xs font-semibold">Shop</Text>
+              <TouchableOpacity className="flex-1 bg-white/5 border border-white/10 rounded-3xl p-5 items-center">
+                <View className="w-12 h-12 rounded-full bg-blue-500/20 items-center justify-center mb-3">
+                  <ShoppingBag color="#3b82f6" size={24} />
+                </View>
+                <Text className="text-white text-[10px] font-black uppercase tracking-widest">
+                  Shop
+                </Text>
               </TouchableOpacity>
             </Link>
           </View>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity
-          onPress={logout}
-          className="bg-error/20 border border-error rounded-2xl p-4 items-center mt-4"
-        >
-          <Text className="text-error font-semibold">Logout</Text>
-        </TouchableOpacity>
+        {/* Footer Info */}
+        <View className="items-center mt-6 mb-10">
+          <Text className="text-purple-400/20 text-[10px] font-bold uppercase tracking-widest">
+            Absorbio Mobile • Version 1.0.0
+          </Text>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );
