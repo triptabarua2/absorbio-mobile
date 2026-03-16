@@ -1,18 +1,37 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useFocusEffect } from 'expo-router';
 
 export default function GameScreen() {
   const { user, userData } = useAuth();
 
   // The web app is hosted at https://absorbio.vercel.app/
-  // We can pass user data via URL parameters or postMessage
   const gameUrl = `https://absorbio.vercel.app/?uid=${user?.uid || ''}&name=${encodeURIComponent(userData?.name || 'Player')}&mobile=true`;
 
+  useFocusEffect(
+    React.useCallback(() => {
+      // Lock to landscape when entering the game screen
+      async function lockOrientation() {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      }
+      lockOrientation();
+
+      return () => {
+        // Unlock or return to portrait when leaving the game screen
+        async function unlockOrientation() {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        }
+        unlockOrientation();
+      };
+    }, [])
+  );
+
   return (
-    <ScreenContainer safeAreaClassName="flex-1" edges={['top']}>
+    <ScreenContainer safeAreaClassName="flex-1" edges={[]}>
       <View style={styles.container}>
         <WebView
           source={{ uri: gameUrl }}
@@ -25,12 +44,10 @@ export default function GameScreen() {
               <ActivityIndicator size="large" color="#a855f7" />
             </View>
           )}
-          // Handle messages from the game (e.g., score updates, coin gains)
           onMessage={(event) => {
             try {
               const data = JSON.parse(event.nativeEvent.data);
               console.log('Message from game:', data);
-              // Handle game events here if needed
             } catch (e) {
               console.error('Error parsing game message:', e);
             }
