@@ -1,114 +1,89 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Dimensions,
-  StyleSheet,
-  Alert,
-  PanResponder,
-} from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, Dimensions, PanResponder, Alert, TouchableOpacity } from 'react-native';
+import { Canvas, Circle, Rect, Group, Text as SkiaText, useFont, vec, LinearGradient, Shadow, BlurMask } from '@shopify/react-native-skia';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 import { updateStats } from '@/lib/firebase-db';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect } from 'expo-router';
-import Svg, { Circle, Rect } from 'react-native-svg';
-import { GameEngine, GameState } from '@/lib/game-engine';
+import { BlackholeEngine, GameState } from '@/lib/game-engine-blackhole';
+import * as Haptics from 'expo-haptics';
 
-const CANVAS_WIDTH = Dimensions.get('window').width;
-const CANVAS_HEIGHT = Dimensions.get('window').height;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function GameScreen() {
   const { user, userData, refreshUserData } = useAuth();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [playerInput, setPlayerInput] = useState({ x: 0, y: 0 });
   const [isPlaying, setIsPlaying] = useState(true);
-  const gameEngineRef = useRef<GameEngine | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+  const engineRef = useRef<BlackholeEngine | null>(null);
   const lastTimeRef = useRef<number>(Date.now());
+  const animationFrameRef = useRef<number | null>(null);
 
-  // Setup orientation lock
+  // Load font for Skia
+  const font = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), 14);
+
+  // Orientation Lock
   useFocusEffect(
     React.useCallback(() => {
-      async function lockOrientation() {
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-      }
-      lockOrientation();
-
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
       return () => {
-        async function unlockOrientation() {
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-        }
-        unlockOrientation();
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       };
     }, [])
   );
 
-  // Initialize game engine
+  // Initialize Engine
   useEffect(() => {
-    if (!gameEngineRef.current) {
-      gameEngineRef.current = new GameEngine(userData?.name || 'Player');
-      setGameState(gameEngineRef.current.getGameState());
+    if (!engineRef.current) {
+      engineRef.current = new BlackholeEngine('infinity');
+      setGameState(engineRef.current.getGameState());
     }
-  }, [userData]);
+  }, []);
 
-  // Game loop
+  // Game Loop
   useEffect(() => {
-    if (!gameEngineRef.current || !isPlaying) return;
+    if (!engineRef.current || !isPlaying) return;
 
-    const gameLoop = () => {
+    const loop = () => {
       const now = Date.now();
-      const deltaTime = (now - lastTimeRef.current) / 1000;
+      const dt = (now - lastTimeRef.current) / 1000;
       lastTimeRef.current = now;
 
-      gameEngineRef.current!.update(deltaTime, playerInput);
-      setGameState({ ...gameEngineRef.current!.getGameState() });
+      engineRef.current!.update(dt, playerInput);
+      const newState = engineRef.current!.getGameState();
+      setGameState({ ...newState });
 
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
+      if (newState.isGameOver) {
+        setIsPlaying(false);
+        handleGameOver(newState);
+      } else {
+        animationFrameRef.current = requestAnimationFrame(loop);
+      }
     };
 
-    animationFrameRef.current = requestAnimationFrame(gameLoop);
-
+    animationFrameRef.current = requestAnimationFrame(loop);
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
   }, [isPlaying, playerInput]);
 
-  // Handle game over
-  useEffect(() => {
-    if (gameState?.isGameOver) {
-      setIsPlaying(false);
-      handleGameOver();
-    }
-  }, [gameState?.isGameOver]);
-
-  const handleGameOver = async () => {
-    if (!user || !userData) return;
-
-    Alert.alert('Game Over!', `Final Score: ${gameState?.score}\nCoins: ${gameState?.coins}`, [
+  const handleGameOver = (state: GameState) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    Alert.alert('Game Over!', `Score: ${state.score}\nCoins: ${state.coins}`, [
       {
         text: 'Save & Exit',
         onPress: async () => {
-          try {
-            await updateStats(
-              user.uid,
-              gameState?.xp || 0,
-              gameState?.coins || 0
-            );
+          if (user) {
+            await updateStats(user.uid, state.xp, state.coins);
             await refreshUserData();
-          } catch (error) {
-            console.error('Error saving game stats:', error);
           }
         },
       },
       {
-        text: 'Play Again',
+        text: 'Retry',
         onPress: () => {
-          gameEngineRef.current?.resetGame();
-          setGameState(gameEngineRef.current!.getGameState());
+          engineRef.current = new BlackholeEngine('infinity');
           setIsPlaying(true);
           lastTimeRef.current = Date.now();
         },
@@ -116,114 +91,112 @@ export default function GameScreen() {
     ]);
   };
 
-  // Handle touch input for joystick
+  // Joystick Input
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, { dx, dy }) => {
-        const magnitude = Math.sqrt(dx * dx + dy * dy);
-        const maxMagnitude = 100;
-        const normalizedX = Math.min(1, magnitude > 0 ? dx / maxMagnitude : 0);
-        const normalizedY = Math.min(1, magnitude > 0 ? dy / maxMagnitude : 0);
-        setPlayerInput({ x: normalizedX, y: normalizedY });
+      onPanResponderMove: (_, { dx, dy }) => {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const max = 80;
+        const nx = Math.min(1, dx / max);
+        const ny = Math.min(1, dy / max);
+        setPlayerInput({ x: nx, y: ny });
       },
-      onPanResponderRelease: () => {
-        setPlayerInput({ x: 0, y: 0 });
-      },
+      onPanResponderRelease: () => setPlayerInput({ x: 0, y: 0 }),
     })
   ).current;
 
-  if (!gameState) {
-    return (
-      <ScreenContainer className="items-center justify-center">
-        <Text className="text-white text-lg font-bold">Loading Game...</Text>
-      </ScreenContainer>
-    );
-  }
+  if (!gameState) return null;
 
-  // Calculate camera position (follow player)
-  const cameraX = Math.max(0, Math.min(8000 - CANVAS_WIDTH, gameState.player.x - CANVAS_WIDTH / 2));
-  const cameraY = Math.max(0, Math.min(8000 - CANVAS_HEIGHT, gameState.player.y - CANVAS_HEIGHT / 2));
+  const { player, foods, bots, dangerZones, blackHoles } = gameState;
+  const cameraX = player.x - SCREEN_WIDTH / 2;
+  const cameraY = player.y - SCREEN_HEIGHT / 2;
 
   return (
     <ScreenContainer safeAreaClassName="flex-1" edges={[]}>
       <View style={styles.container} {...panResponder.panHandlers}>
-        <Svg width={CANVAS_WIDTH} height={CANVAS_HEIGHT} style={styles.canvas}>
+        <Canvas style={styles.canvas}>
           {/* Background */}
-          <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="#020617" />
+          <Rect x={0} y={0} width={SCREEN_WIDTH} height={SCREEN_HEIGHT} color="#020617" />
+          
+          {/* World Border */}
+          <Circle cx={engineRef.current!.worldSize / 2 - cameraX} cy={engineRef.current!.worldSize / 2 - cameraY} r={engineRef.current!.worldSize / 2} color="#1e293b" style="stroke" strokeWidth={5} />
 
-          {/* Render food */}
-          {gameState.foods.map((food) => {
-            const screenX = food.x - cameraX;
-            const screenY = food.y - cameraY;
+          {/* Render Food */}
+          {foods.map((f, i) => (
+            <Circle key={f.id} cx={f.x - cameraX} cy={f.y - cameraY} r={f.radius} color={f.color}>
+              <BlurMask blur={2} style="normal" />
+            </Circle>
+          ))}
 
-            if (screenX < -20 || screenX > CANVAS_WIDTH + 20 || screenY < -20 || screenY > CANVAS_HEIGHT + 20) {
-              return null;
-            }
+          {/* Render Bots */}
+          {bots.filter(b => b.alive).map(b => (
+            <Group key={b.id}>
+              <Circle cx={b.x - cameraX} cy={b.y - cameraY} r={b.radius} color={b.color}>
+                <Shadow dx={0} dy={0} blur={10} color={b.color!} />
+              </Circle>
+              {font && <SkiaText x={b.x - cameraX - 20} y={b.y - cameraY - b.radius - 5} text={b.name!} font={font} color="white" />}
+            </Group>
+          ))}
 
-            return (
-              <Circle
-                key={food.id}
-                cx={screenX}
-                cy={screenY}
-                r={food.radius}
-                fill={food.color || '#00ff88'}
-                opacity="0.8"
-              />
-            );
-          })}
+          {/* Render Danger Zones */}
+          {dangerZones.map(z => (
+            <Circle key={z.id} cx={z.x - cameraX} cy={z.y - cameraY} r={z.radius} color="rgba(239, 68, 68, 0.3)">
+              <BlurMask blur={20} style="normal" />
+            </Circle>
+          ))}
 
-          {/* Render enemies */}
-          {gameState.enemies.map((enemy) => {
-            const screenX = enemy.x - cameraX;
-            const screenY = enemy.y - cameraY;
+          {/* Render Black Holes */}
+          {blackHoles.map(bh => (
+            <Circle key={bh.id} cx={bh.x - cameraX} cy={bh.y - cameraY} r={bh.radius} color="black">
+              <Shadow dx={0} dy={0} blur={30} color="#a855f7" />
+            </Circle>
+          ))}
 
-            if (screenX < -30 || screenX > CANVAS_WIDTH + 30 || screenY < -30 || screenY > CANVAS_HEIGHT + 30) {
-              return null;
-            }
-
-            return (
-              <Circle
-                key={enemy.id}
-                cx={screenX}
-                cy={screenY}
-                r={enemy.radius}
-                fill={enemy.color || '#ff00ff'}
-                opacity="0.7"
-              />
-            );
-          })}
-
-          {/* Render player */}
-          <Circle
-            cx={CANVAS_WIDTH / 2}
-            cy={CANVAS_HEIGHT / 2}
-            r={gameState.player.radius}
-            fill={gameState.player.color}
-            opacity="0.9"
-          />
-        </Svg>
+          {/* Render Player */}
+          <Circle cx={SCREEN_WIDTH / 2} cy={SCREEN_HEIGHT / 2} r={player.radius} color={player.color}>
+            <LinearGradient start={vec(0, 0)} end={vec(player.radius * 2, player.radius * 2)} colors={['#a855f7', '#7c3aed']} />
+            <Shadow dx={0} dy={0} blur={20} color="#a855f7" />
+          </Circle>
+        </Canvas>
 
         {/* UI Overlay */}
-        <View style={styles.uiOverlay}>
-          <View style={styles.statsContainer}>
-            <Text style={styles.statText}>Score: {gameState.score}</Text>
-            <Text style={styles.statText}>Level: {gameState.level}</Text>
-            <Text style={styles.statText}>Coins: {gameState.coins}</Text>
+        <View style={styles.ui}>
+          <View style={styles.stats}>
+            <Text style={styles.text}>Score: {gameState.score}</Text>
+            <Text style={styles.text}>Mass: {Math.floor(player.mass)}</Text>
+            <Text style={styles.text}>Level: {gameState.level}</Text>
           </View>
 
-          <View style={styles.xpContainer}>
-            <Text style={styles.xpText}>{gameState.xp.toFixed(0)} / 200 XP</Text>
-            <View style={styles.xpBar}>
-              <View
-                style={[
-                  styles.xpFill,
-                  { width: `${Math.min((gameState.xp / 200) * 100, 100)}%` },
-                ]}
-              />
-            </View>
+          {/* Instability Bar */}
+          <View style={styles.instabilityContainer}>
+            <View style={[styles.instabilityFill, { width: `${player.instability}%`, backgroundColor: player.instability > 80 ? '#ef4444' : '#a855f7' }]} />
           </View>
+
+          {/* Event Text */}
+          {gameState.eventText && (
+            <View style={styles.eventBox}>
+              <Text style={styles.eventText}>{gameState.eventText}</Text>
+            </View>
+          )}
+
+          {/* Surge Button */}
+          {player.mass >= 20000 && (
+            <TouchableOpacity 
+              style={[styles.surgeBtn, { opacity: engineRef.current!.rocketCooldown > 0 ? 0.5 : 1 }]} 
+              onPress={() => {
+                engineRef.current!.activateSurge();
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              }}
+            >
+              <Text style={styles.surgeText}>🚀 SURGE</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Minimap */}
+        <View style={styles.minimap}>
+          <View style={styles.minimapPlayer} style={{ left: (player.x / 8000) * 100, top: (player.y / 8000) * 100 }} />
         </View>
       </View>
     </ScreenContainer>
@@ -231,52 +204,17 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#020617',
-    position: 'relative',
-  },
-  canvas: {
-    flex: 1,
-  },
-  uiOverlay: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    zIndex: 100,
-  },
-  statsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  statText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  xpContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 10,
-    borderRadius: 10,
-  },
-  xpText: {
-    color: '#a855f7',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  xpBar: {
-    height: 8,
-    backgroundColor: '#1e293b',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  xpFill: {
-    height: '100%',
-    backgroundColor: '#a855f7',
-  },
+  container: { flex: 1, backgroundColor: '#020617' },
+  canvas: { flex: 1 },
+  ui: { position: 'absolute', top: 20, left: 20, right: 20, bottom: 20, pointerEvents: 'box-none' },
+  stats: { backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 8, alignSelf: 'flex-start' },
+  text: { color: 'white', fontWeight: 'bold', fontSize: 14 },
+  instabilityContainer: { position: 'absolute', bottom: 20, left: '25%', width: '50%', height: 10, backgroundColor: '#1e293b', borderRadius: 5, overflow: 'hidden' },
+  instabilityFill: { height: '100%' },
+  eventBox: { position: 'absolute', top: 50, alignSelf: 'center', backgroundColor: 'rgba(239, 68, 68, 0.8)', padding: 10, borderRadius: 20 },
+  eventText: { color: 'white', fontWeight: 'bold', fontSize: 18 },
+  surgeBtn: { position: 'absolute', bottom: 50, right: 20, backgroundColor: '#a855f7', padding: 15, borderRadius: 30, elevation: 5 },
+  surgeText: { color: 'white', fontWeight: 'bold' },
+  minimap: { position: 'absolute', top: 20, right: 20, width: 100, height: 100, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  minimapPlayer: { position: 'absolute', width: 4, height: 4, backgroundColor: '#a855f7', borderRadius: 2 },
 });
