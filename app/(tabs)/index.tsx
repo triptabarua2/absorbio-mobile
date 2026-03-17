@@ -209,7 +209,7 @@ export default function HomeScreen() {
     setIsStarting(true);
     setTimeout(() => {
       setIsStarting(false);
-      router.push({ pathname:'/(tabs)/game', params:{mode:mode.toLowerCase()} });
+      router.push({ pathname:'/(tabs)/game', params:{mode:mode.toLowerCase(), theme} });
     }, 2500);
   };
 

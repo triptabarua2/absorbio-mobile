@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { updateStats } from '@/lib/firebase-db';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Trophy, AlertTriangle, Zap, Magnet, X } from 'lucide-react-native';
 
@@ -113,6 +113,14 @@ interface GameScreenProps {
   balance?: number;
 }
 
+const THEME_BG_COLORS: Record<string, [string, string]> = {
+  Space:  ['#2a0f4f', '#050015'],
+  Neon:   ['#001122', '#002233'],
+  Dark:   ['#111111', '#000000'],
+  Sunset: ['#ff9966', '#1a0026'],
+  Cosmic: ['#0ea5e9', '#000814'],
+};
+
 export default function GameScreen({
   mode: initMode = 'infinity',
   onExit = () => {},
@@ -121,10 +129,18 @@ export default function GameScreen({
   balance = 0,
 }: GameScreenProps) {
 
+  // ── Read route params (mode & theme from home screen) ──
+  const params = useLocalSearchParams<{ mode?: string; theme?: string }>();
+  const resolvedMode = (params.mode as 'infinity' | 'survival' | 'time') || initMode;
+  const resolvedTheme = params.theme || 'Space';
+
   const dims = Dimensions.get('window');
   const W    = dims.width;
   const H    = dims.height;
   const { user, userData, refreshUserData } = useAuth();
+
+  // Use resolvedMode as the actual game mode
+  const activeMode = resolvedMode;
 
   // ── UI state (rendered every frame via frameTick) ──
   const [frameTick, setFrameTick]           = useState(0);
@@ -169,7 +185,7 @@ export default function GameScreen({
   // ─── Engine ref (matches web engine.current exactly) ─────────────────────
 
   const eng = useRef({
-    mode: initMode as 'infinity' | 'survival' | 'time',
+    mode: resolvedMode as 'infinity' | 'survival' | 'time',
     controlType: 'dual',
     swapStick: false,
     moveStick: { x: 0, y: 0, active: false, baseX: 0, baseY: 0 },
@@ -376,7 +392,7 @@ export default function GameScreen({
 
   // ─── Init Game ────────────────────────────────────────────────────────────
 
-  const initGame = useCallback((m: 'infinity'|'survival'|'time' = initMode) => {
+  const initGame = useCallback((m: 'infinity'|'survival'|'time' = resolvedMode) => {
     const e = eng.current;
     e.mode = m; e.startTime = Date.now(); e.lastInputTime = Date.now();
     e.lastSecond = Date.now(); e.lastTimerUpdate = Date.now();
@@ -442,7 +458,7 @@ export default function GameScreen({
     setReviveTimer(6); setRevived(false); setRocketActive(false);
     setRocketCooldown(0); setRocketTimer2(0); setRocketClickCount(0);
     setGameState('playing');
-  }, [W, H, initMode, spawnObject, spawnPowerup, spawnCoin]);
+  }, [W, H, resolvedMode, spawnObject, spawnPowerup, spawnCoin]);
 
   // ─── updateEngine (ported from web BlackholeGame.jsx) ────────────────────
 
@@ -1046,7 +1062,7 @@ export default function GameScreen({
   }, [updateEngine]);
 
   useEffect(() => {
-    initGame(initMode);
+    initGame(resolvedMode);
   }, []);
 
   useEffect(() => {
@@ -1120,8 +1136,8 @@ export default function GameScreen({
   const worldSY     = sy(worldSize / 2);
   const worldSR     = sr(worldSize / 2);
 
-  // Background colors by theme
-  const bgColors: [string, string] = ['#2a0f4f', '#050015'];
+  // Background colors by theme (dynamic — passed from home screen)
+  const bgColors: [string, string] = THEME_BG_COLORS[resolvedTheme] ?? ['#2a0f4f', '#050015'];
 
   // Orbit rings (background decoration)
   const time        = performance.now() * 0.0005;
@@ -1529,8 +1545,8 @@ export default function GameScreen({
             </View>
           )}
 
-          {/* Death feed (survival) */}
-          {e.mode === 'survival' && deathFeed.length > 0 && (
+          {/* Death feed (all modes) */}
+          {deathFeed.length > 0 && (
             <View style={styles.deathFeed} pointerEvents="none">
               {deathFeed.map((f: any) => (
                 <Text key={f.id} style={styles.deathFeedText}>{f.text}</Text>
@@ -1706,7 +1722,7 @@ export default function GameScreen({
                 <Text style={[styles.statVal, { color: '#60a5fa' }]}>+{xpEarned}</Text>
               </View>
             </View>
-            {reviveTimer > 0 && initMode !== 'survival' && !revived && (
+            {reviveTimer > 0 && resolvedMode !== 'survival' && !revived && (
               <>
                 <Text style={styles.reviveTimer}>{reviveTimer}</Text>
                 {gems > 0 && (
@@ -1717,7 +1733,7 @@ export default function GameScreen({
               </>
             )}
             <TouchableOpacity style={styles.restartBtn}
-              onPress={() => initGame(initMode)}>
+              onPress={() => initGame(resolvedMode)}>
               <Text style={styles.restartText}>PLAY AGAIN</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.backBtn} onPress={onExitRef.current}>
