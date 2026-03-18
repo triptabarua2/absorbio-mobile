@@ -32,7 +32,7 @@ const env = {
   appSlug: "absorbio-mobile",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663325450810/9Ngx2meDiCPahnDMWq7WUw/icon-MrAN9BH2pgqS45bwjHPjVT.webp",
+  logoUrl: "",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -42,8 +42,8 @@ const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
   version: "1.0.0",
-  orientation: "default",
-  icon: "./assets/images/icon.png",
+  orientation: "landscape",
+  icon: env.logoUrl || "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "dark",
   newArchEnabled: true,
@@ -123,7 +123,8 @@ const config: ExpoConfig = {
   ],
   experiments: {
     typedRoutes: true,
-    reactCompiler: true,
+    // reactCompiler disabled: experimental feature not yet fully compatible with New Architecture
+    // reactCompiler: true,
   },
 };
 
