@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Dimensions, ActivityIndicator, Alert, Animated, Easing,
 } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { Canvas, Circle, Path, Skia, RadialGradient, vec } from '@shopify/react-native-skia';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
@@ -124,6 +125,14 @@ export default function LoginScreen() {
   return (
     <View style={S.root}>
       <NebulaBg />
+
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={{ position: 'absolute', top: 50, left: 20, zIndex: 100, padding: 10 }} 
+        onPress={() => router.back()}
+      >
+        <ChevronLeft color="#fff" size={30} />
+      </TouchableOpacity>
 
       <View style={S.inner}>
         {/* ── Logo section ── */}

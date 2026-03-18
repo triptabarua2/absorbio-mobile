@@ -17,10 +17,13 @@ import {
   Bell,
   CircleHelp,
   ChevronRight,
+  ChevronLeft,
   Settings as SettingsIcon,
 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { user, userData, logout } = useAuth();
   const colors = useColors();
 
@@ -81,6 +84,14 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-slate-950">
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={{ position: 'absolute', top: 50, left: 20, zIndex: 100, padding: 10 }} 
+        onPress={() => router.back()}
+      >
+        <ChevronLeft color="#fff" size={30} />
+      </TouchableOpacity>
+
       <ScrollView className="p-6 flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="items-center mb-8">

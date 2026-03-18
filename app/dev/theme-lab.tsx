@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { ChevronLeft } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SchemeColors, type ColorScheme } from "@/constants/theme";
@@ -25,6 +27,7 @@ function ColorSwatch({ name, value }: { name: PaletteName; value: string }) {
 }
 
 export default function ThemeLabScreen() {
+  const router = useRouter();
   const [pressCount, setPressCount] = useState(0);
   const [lastAction, setLastAction] = useState<string>("None yet");
   const { colorScheme, setColorScheme } = useThemeContext();
@@ -56,7 +59,15 @@ export default function ThemeLabScreen() {
 
   return (
     <ScreenContainer className="p-5">
-      <ScrollView className="flex-1">
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={{ position: 'absolute', top: 50, left: 20, zIndex: 100, padding: 10 }} 
+        onPress={() => router.back()}
+      >
+        <ChevronLeft color={colors.text} size={30} />
+      </TouchableOpacity>
+
+      <ScrollView className="flex-1 mt-10">
         <View className="gap-4 pb-8">
           <View className="flex-row gap-2">
             {(["light", "dark"] as ColorScheme[]).map((scheme) => (

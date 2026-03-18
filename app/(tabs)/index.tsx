@@ -190,8 +190,16 @@ export default function HomeScreen() {
     <View style={S.root}>
       <SpaceBackground />
 
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={{ position: 'absolute', top: 50, left: 20, zIndex: 100, padding: 10 }} 
+        onPress={() => router.back()}
+      >
+        <ChevronLeft color="#fff" size={30} />
+      </TouchableOpacity>
+
       {/* ── TOP BAR ── */}
-      <View style={S.topBar}>
+      <View style={[S.topBar, { marginLeft: 50 }]}>
         <TouchableOpacity style={S.profilePill}>
           <View style={S.avatarCircle}>
             <User size={18} color="#9ca3af" />

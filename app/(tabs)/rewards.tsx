@@ -11,9 +11,11 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 import { saveUserData } from '@/lib/firebase-db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Gift, Coins, CheckCircle2, X } from 'lucide-react-native';
+import { Gift, Coins, CheckCircle2, X, ChevronLeft } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function RewardsScreen() {
+  const router = useRouter();
   const { user, userData, refreshUserData } = useAuth();
   const [claimed, setClaimed] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
@@ -82,6 +84,14 @@ export default function RewardsScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-slate-950">
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={{ position: 'absolute', top: 50, left: 20, zIndex: 100, padding: 10 }} 
+        onPress={() => router.back()}
+      >
+        <ChevronLeft color="#fff" size={30} />
+      </TouchableOpacity>
+
       <View className="p-6 flex-1">
         <View className="items-center mb-8">
           <View className="flex-row items-center gap-3">

@@ -10,9 +10,11 @@ import {
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 import { updateInventory, saveUserData } from '@/lib/firebase-db';
-import { ShoppingBag, Coins, CheckCircle2, X } from 'lucide-react-native';
+import { ShoppingBag, Coins, CheckCircle2, X, ChevronLeft } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function ShopScreen() {
+  const router = useRouter();
   const { user, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState<'skins' | 'trails' | 'powerups'>(
     'skins'
@@ -89,6 +91,14 @@ export default function ShopScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-slate-950">
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={{ position: 'absolute', top: 50, left: 20, zIndex: 100, padding: 10 }} 
+        onPress={() => router.back()}
+      >
+        <ChevronLeft color="#fff" size={30} />
+      </TouchableOpacity>
+
       <View className="p-6 flex-1">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-8">

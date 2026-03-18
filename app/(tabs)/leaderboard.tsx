@@ -6,7 +6,8 @@ import {
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
-import { Trophy, Crown, Medal, RefreshCw } from 'lucide-react-native';
+import { Trophy, Crown, Medal, RefreshCw, ChevronLeft } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 interface Player {
   rank:  number;
@@ -17,6 +18,7 @@ interface Player {
 }
 
 export default function LeaderboardScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const [data,    setData]    = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,14 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={S.root}>
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={{ position: 'absolute', top: 24, left: 16, zIndex: 100, padding: 10 }} 
+        onPress={() => router.back()}
+      >
+        <ChevronLeft color="#fff" size={28} />
+      </TouchableOpacity>
+
       {/* Decorative glows */}
       <View style={[S.glow, { top: -60, left: -60, backgroundColor: 'rgba(234,179,8,0.15)' }]} />
       <View style={[S.glow, { bottom: -60, right: -60, backgroundColor: 'rgba(168,85,247,0.15)' }]} />
