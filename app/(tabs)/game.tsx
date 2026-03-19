@@ -16,6 +16,7 @@ import {
 } from '@shopify/react-native-skia';
 import { useAuth } from '@/lib/auth-context';
 import { updateStats } from '@/lib/firebase-db';
+import { saveStats, GameResultShare } from '@/components/ProfileCard';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -155,6 +156,7 @@ export default function GameScreen({
   const [deathFeed, setDeathFeed]           = useState<any[]>([]);
   const [eventText, setEventText]           = useState<string | null>(null);
   const [xpEarned, setXpEarned]             = useState(0);
+  const [gameResult, setGameResult]         = useState<any>(null);
   const [reviveTimer, setReviveTimer]       = useState(6);
   const [revived, setRevived]               = useState(false);
   const [rocketActive, setRocketActive]     = useState(false);
@@ -468,16 +470,38 @@ export default function GameScreen({
     const triggerGameOver=(isWinCond=false)=>{
       if(e.isDead) return;
       e.isDead=true;
+      const durationSec = Math.floor((Date.now()-e.startTime)/1000);
       let xpR=0;
       xpR+=e.botKills*20;
-      xpR+=Math.floor((Date.now()-e.startTime)/60000)*15;
+      xpR+=Math.floor(durationSec/60)*15;
       if(e.mode==='survival'&&isWinCond) xpR+=80;
       xpR+=Math.floor(e.score/500)*5;
       setXpEarned(xpR); setXp(prev=>prev+xpR);
       if(isWinCond) setIsWin(true);
       addCoins(e.coinsCollected);
-      // save stats
+      // Save full stats to AsyncStorage
+      saveStats({
+        totalScore:      e.score,
+        totalKills:      e.botKills,
+        totalMass:       Math.floor(e.player.mass),
+        bestMass:        Math.floor(e.player.mass),
+        highestTime:     durationSec,
+        totalPlayedTime: durationSec,
+        totalWins:       isWinCond ? 1 : 0,
+      });
+      // Save to Firebase
       if(user) updateStats(user.uid, xpR, e.coinsCollected).catch(()=>{});
+      // Store result for share card
+      setGameResult({
+        score:    e.score,
+        kills:    e.botKills,
+        mass:     Math.floor(e.player.mass),
+        coins:    e.coinsCollected,
+        mode:     e.mode,
+        isWin:    isWinCond,
+        duration: durationSec,
+        xpEarned: xpR,
+      });
       setReviveTimer(6); setRevived(false);
       setGameState('gameover');
     };
@@ -1698,46 +1722,36 @@ export default function GameScreen({
         </View>
       )}
 
-      {/* ═══ Game Over Screen ═══ */}
-      {gameState === 'gameover' && (
+      {/* ═══ Game Over — Revive timer (before result card) ═══ */}
+      {gameState === 'gameover' && reviveTimer > 0 && resolvedMode !== 'survival' && !revived && (
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Text style={[styles.gameOverTitle, { color: isWin ? '#4ade80' : '#ef4444' }]}>
               {isWin ? 'YOU WIN' : 'GAME OVER'}
             </Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Score</Text>
-                <Text style={[styles.statVal, { color: '#a78bfa' }]}>{score}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Coins</Text>
-                <Text style={[styles.statVal, { color: '#facc15' }]}>{coinsCollected}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>XP</Text>
-                <Text style={[styles.statVal, { color: '#60a5fa' }]}>+{xpEarned}</Text>
-              </View>
-            </View>
-            {reviveTimer > 0 && resolvedMode !== 'survival' && !revived && (
-              <>
-                <Text style={styles.reviveTimer}>{reviveTimer}</Text>
-                {gems > 0 && (
-                  <TouchableOpacity style={styles.reviveGem} onPress={revivePlayer}>
-                    <Text style={styles.reviveBtnText}>REVIVE (💎 {gems})</Text>
-                  </TouchableOpacity>
-                )}
-              </>
+            <Text style={styles.reviveTimer}>{reviveTimer}</Text>
+            {gems > 0 && (
+              <TouchableOpacity style={styles.reviveGem} onPress={revivePlayer}>
+                <Text style={styles.reviveBtnText}>REVIVE (💎 {gems})</Text>
+              </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.restartBtn}
-              onPress={() => initGame(resolvedMode)}>
-              <Text style={styles.restartText}>PLAY AGAIN</Text>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.backBtn} onPress={onExitRef.current}>
-              <Text style={styles.backText}>BACK HOME</Text>
+              <Text style={styles.backText}>SKIP → RESULTS</Text>
             </TouchableOpacity>
           </View>
         </View>
+      )}
+
+      {/* ═══ Game Result Share Card ═══ */}
+      {gameState === 'gameover' && (reviveTimer <= 0 || revived || resolvedMode === 'survival') && gameResult && (
+        <GameResultShare
+          visible={true}
+          result={gameResult}
+          playerName={userData?.name || 'Cosmic Explorer'}
+          onRestart={() => initGame(resolvedMode)}
+          onHome={onExitRef.current}
+          onClose={() => {}}
+        />
       )}
     </View>
   );
