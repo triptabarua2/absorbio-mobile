@@ -2,13 +2,30 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithCredential,
+  GoogleAuthProvider,
   signInAnonymously,
   signOut,
   User,
 } from 'firebase/auth';
+import { Platform } from 'react-native';
 import { auth, googleProvider, facebookProvider } from './firebase';
 import { getUserData, initializeUserData, UserData } from './firebase-db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Native Google Sign-In (Android/iOS only)
+let GoogleSignin: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    const pkg = require('@react-native-google-signin/google-signin');
+    GoogleSignin = pkg.GoogleSignin;
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    });
+  } catch (e) {
+    console.warn('Google Sign-in native module not available:', e);
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -32,25 +49,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
 
-  // Check for offline guest on app start
   useEffect(() => {
     const checkOfflineGuest = async () => {
       try {
         const offlineGuest = await AsyncStorage.getItem('absorbio_offline_guest');
         if (offlineGuest === 'true') {
           setIsGuest(true);
-          const savedGuestData = await AsyncStorage.getItem(
-            'absorbio_guest_stats'
-          );
+          const savedGuestData = await AsyncStorage.getItem('absorbio_guest_stats');
           if (savedGuestData) {
             setUserData(JSON.parse(savedGuestData));
           } else {
-            setUserData({
-              uid: 'guest_' + Date.now(),
-              level: 1,
-              xp: 0,
-              coins: 20,
-            });
+            setUserData({ uid: 'guest_' + Date.now(), level: 1, xp: 0, coins: 20 });
           }
           setLoading(false);
           return true;
@@ -69,12 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (firebaseUser) {
           setUser(firebaseUser);
           setIsGuest(firebaseUser.isAnonymous);
-
-          // Load user data from Firestore
           let data = await getUserData(firebaseUser.uid);
-
           if (!data) {
-            // Initialize new user
             data = await initializeUserData(
               firebaseUser.uid,
               firebaseUser.displayName || 'Player',
@@ -82,7 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               firebaseUser.providerData[0]?.providerId || 'anonymous'
             );
           }
-
           setUserData(data);
         } else {
           setUser(null);
@@ -100,8 +104,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signInWithGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = result.user;
+      let firebaseUser: User;
+
+      if (Platform.OS === 'web') {
+        // Web: browser popup
+        const result = await signInWithPopup(auth, googleProvider);
+        firebaseUser = result.user;
+      } else {
+        // Android/iOS: native Google Sign-In
+        if (!GoogleSignin) throw new Error('Google Sign-In native module not available');
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        const signInResult = await GoogleSignin.signIn();
+        const idToken = signInResult?.data?.idToken ?? signInResult?.idToken;
+        if (!idToken) throw new Error('Google Sign-In: No ID token received');
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        firebaseUser = result.user;
+      }
 
       let data = await getUserData(firebaseUser.uid);
       if (!data) {
@@ -112,7 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           'google'
         );
       }
-
       setUser(firebaseUser);
       setUserData(data);
       setIsGuest(false);
@@ -127,7 +145,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const result = await signInWithPopup(auth, facebookProvider);
       const firebaseUser = result.user;
-
       let data = await getUserData(firebaseUser.uid);
       if (!data) {
         data = await initializeUserData(
@@ -137,7 +154,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           'facebook'
         );
       }
-
       setUser(firebaseUser);
       setUserData(data);
       setIsGuest(false);
@@ -150,33 +166,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signInAsGuest = async () => {
     try {
-      // Try online anonymous sign-in first
       const result = await signInAnonymously(auth);
       setUser(result.user);
       setIsGuest(true);
-      setUserData({
-        uid: result.user.uid,
-        level: 1,
-        xp: 0,
-        coins: 20,
-      });
+      setUserData({ uid: result.user.uid, level: 1, xp: 0, coins: 20 });
       await AsyncStorage.removeItem('absorbio_offline_guest');
     } catch (error) {
-      // Fall back to offline guest
       console.warn('Online guest sign-in failed, using offline mode:', error);
       await AsyncStorage.setItem('absorbio_offline_guest', 'true');
       setIsGuest(true);
-      setUserData({
-        uid: 'guest_' + Date.now(),
-        level: 1,
-        xp: 0,
-        coins: 20,
-      });
+      setUserData({ uid: 'guest_' + Date.now(), level: 1, xp: 0, coins: 20 });
     }
   };
 
   const logout = async () => {
     try {
+      if (Platform.OS !== 'web' && GoogleSignin) {
+        try { await GoogleSignin.signOut(); } catch (_) {}
+      }
       await signOut(auth);
       setUser(null);
       setUserData(null);
@@ -191,21 +198,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const refreshUserData = async () => {
     if (!user) return;
     const data = await getUserData(user.uid);
-    if (data) {
-      setUserData(data);
-    }
+    if (data) setUserData(data);
   };
 
   const value: AuthContextType = {
-    user,
-    userData,
-    loading,
-    isGuest,
-    signInWithGoogle,
-    signInWithFacebook,
-    signInAsGuest,
-    logout,
-    refreshUserData,
+    user, userData, loading, isGuest,
+    signInWithGoogle, signInWithFacebook,
+    signInAsGuest, logout, refreshUserData,
   };
 
   return (
