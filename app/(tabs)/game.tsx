@@ -15,7 +15,7 @@ import {
   RadialGradient, LinearGradient, DashPathEffect,
 } from '@shopify/react-native-skia';
 import { useAuth } from '@/lib/auth-context';
-import { updateStats } from '@/lib/firebase-db';
+import { updateStats, updateGameStats } from '@/lib/firebase-db';
 import { saveStats, GameResultShare } from '@/components/ProfileCard';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -489,8 +489,18 @@ export default function GameScreen({
         totalPlayedTime: durationSec,
         totalWins:       isWinCond ? 1 : 0,
       });
-      // Save to Firebase
+      // Save to Firebase — xp & coins
       if(user) updateStats(user.uid, xpR, e.coinsCollected).catch(()=>{});
+      // Save game stats to Firebase (app delete করলেও থাকবে)
+      if(user) updateGameStats(user.uid, {
+        totalScore:      e.score,
+        totalKills:      e.botKills,
+        totalMass:       Math.floor(e.player.mass),
+        bestMass:        Math.floor(e.player.mass),
+        highestTime:     durationSec,
+        totalPlayedTime: durationSec,
+        totalWins:       isWinCond ? 1 : 0,
+      }).catch(()=>{});
       // Store result for share card
       setGameResult({
         score:    e.score,
