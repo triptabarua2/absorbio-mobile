@@ -347,6 +347,7 @@ export default function HomeScreen() {
         xp={xp}
         xpNeeded={xpNeeded}
         coins={balance}
+        uid={user?.uid}
       />
     </View>
   );
