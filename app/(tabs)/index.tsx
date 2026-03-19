@@ -9,10 +9,16 @@ import {
   StyleSheet, Dimensions, Modal, Platform, ScrollView,
   ActivityIndicator, ImageBackground,
 } from 'react-native';
-import {
-  Canvas, Circle, Path, Skia,
-  RadialGradient, vec,
-} from '@shopify/react-native-skia';
+// Skia: conditional import (crashes on web if imported directly)
+let Canvas: any = null, Circle: any = null, Path: any = null;
+let Skia: any = null, RadialGradient: any = null, vec: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    const skia = require('@shopify/react-native-skia');
+    Canvas = skia.Canvas; Circle = skia.Circle; Path = skia.Path;
+    Skia = skia.Skia; RadialGradient = skia.RadialGradient; vec = skia.vec;
+  } catch(e) {}
+}
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
