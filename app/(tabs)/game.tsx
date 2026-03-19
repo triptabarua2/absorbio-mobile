@@ -1147,13 +1147,13 @@ export default function GameScreen({
       const id = Math.abs(Math.round(ox * 13 + oy * 7));
       const sizeMod = ((id % 300) + 250) * zoom;
       const rotAngle = time * ((id % 10) / 10 - 0.5) * 0.4;
-      const oPath = Skia.Path.Make();
-      oPath.addCircle(sx(ox), sy(oy), sizeMod);
+      const oPath = Skia?.Path ? Skia.Path.Make() : null;
+      if (oPath) { oPath.addCircle(sx(ox), sy(oy), sizeMod); }
       orbitRings.push(
         <Group key={`orb-${ox}-${oy}`} origin={vec(sx(ox), sy(oy))} transform={[{ rotate: rotAngle }]}>
-          <Path path={oPath}>
+          {oPath && <Path path={oPath}>
             <Paint style="stroke" strokeWidth={1.5} color="rgba(255,255,255,0.14)" />
-          </Path>
+          </Path>}
         </Group>
       );
     }
@@ -1173,12 +1173,12 @@ export default function GameScreen({
   });
 
   // World border overlay (darken outside world circle)
-  const overlayPath = Skia.Path.Make();
-  overlayPath.addRect({ x: 0, y: 0, width: W, height: H });
-  overlayPath.addCircle(worldSX, worldSY, worldSR);
-  overlayPath.setFillType(FillType.EvenOdd);
-  const borderPath = Skia.Path.Make();
-  borderPath.addCircle(worldSX, worldSY, worldSR);
+  const overlayPath = Skia?.Path ? Skia.Path.Make() : null;
+  if (overlayPath) { overlayPath.addRect({ x: 0, y: 0, width: W, height: H }); }
+  if (overlayPath) { overlayPath.addCircle(worldSX, worldSY, worldSR); }
+  if (overlayPath) { overlayPath.setFillType(FillType.EvenOdd); }
+  const borderPath = Skia?.Path ? Skia.Path.Make() : null;
+  if (borderPath) { borderPath.addCircle(worldSX, worldSY, worldSR); }
 
   // Survival zone overlay
   let survivalOverlay: ReturnType<typeof Skia.Path.Make> | null = null;
@@ -1186,15 +1186,15 @@ export default function GameScreen({
   let survivalNextPath: ReturnType<typeof Skia.Path.Make> | null = null;
   if (e.mode === 'survival' && e.survival.active) {
     const s = e.survival;
-    survivalOverlay = Skia.Path.Make();
-    survivalOverlay.addRect({ x: 0, y: 0, width: W, height: H });
-    survivalOverlay.addCircle(sx(s.centerX), sy(s.centerY), sr(s.currentRadius));
-    survivalOverlay.setFillType(FillType.EvenOdd);
-    survivalBorderPath = Skia.Path.Make();
-    survivalBorderPath.addCircle(sx(s.centerX), sy(s.centerY), sr(s.currentRadius));
+    survivalOverlay = Skia?.Path ? Skia.Path.Make() : null;
+    if (survivalOverlay) { survivalOverlay.addRect({ x: 0, y: 0, width: W, height: H }); }
+    if (survivalOverlay) { survivalOverlay.addCircle(sx(s.centerX), sy(s.centerY), sr(s.currentRadius)); }
+    if (survivalOverlay) { survivalOverlay.setFillType(FillType.EvenOdd); }
+    survivalBorderPath = Skia?.Path ? Skia.Path.Make() : null;
+    if (survivalBorderPath) { survivalBorderPath.addCircle(sx(s.centerX), sy(s.centerY), sr(s.currentRadius)); }
     if (s.phase === 'preview') {
-      survivalNextPath = Skia.Path.Make();
-      survivalNextPath.addCircle(sx(s.nextCenterX), sy(s.nextCenterY), sr(s.targetRadius));
+      survivalNextPath = Skia?.Path ? Skia.Path.Make() : null;
+      if (survivalNextPath) { survivalNextPath.addCircle(sx(s.nextCenterX), sy(s.nextCenterY), sr(s.targetRadius)); }
     }
   }
 
@@ -1202,11 +1202,11 @@ export default function GameScreen({
   const dangerZoneElements: React.ReactElement[] = e.dangerZones.map((zone: any, i: number) => {
     const cr = zone.baseRadius + Math.sin(zone.pulse) * 40;
     const intensity = (Math.sin(zone.pulse) + 1) / 2;
-    const p = Skia.Path.Make(); p.addCircle(sx(zone.x), sy(zone.y), sr(cr));
+    const p = Skia?.Path ? Skia.Path.Make() : null; if (p) { p.addCircle(sx(zone.x), sy(zone.y), sr(cr)); }
     return (
       <Group key={`dz-${i}`}>
-        <Path path={p} color={`rgba(255,0,0,${(0.1 + intensity * 0.2).toFixed(2)})`} />
-        <Path path={p}><Paint style="stroke" strokeWidth={3} color={`rgba(255,0,0,${(0.3+intensity*0.4).toFixed(2)})`} /></Path>
+        {p && {p && <Path path={p} color={`rgba(255,0,0,${(0.1 + intensity * 0.2).toFixed(2)})`} />}
+        <Path path={p}><Paint style="stroke" strokeWidth={3} color={`rgba(255,0,0,${(0.3+intensity*0.4).toFixed(2)})`} /></Path>}
       </Group>
     );
   });
@@ -1215,11 +1215,11 @@ export default function GameScreen({
   const blackHoleElements: React.ReactElement[] = e.blackHoles.map((bh: any, i: number) => {
     const bhx = sx(bh.x), bhy = sy(bh.y), bhr = sr(bh.radius), bhpr = sr(bh.pullRadius);
     const ringElems = (bh.rings || []).map((ring: any, ri: number) => {
-      const rp = Skia.Path.Make(); rp.addCircle(bhx, bhy, sr(ring.radius));
+      const rp = Skia?.Path ? Skia.Path.Make() : null; rif (p) { p.addCircle(bhx, bhy, sr(ring.radius)); }
       return (
-        <Path key={`bhr-${ri}`} path={rp}>
+        {rp && <Path key={`bhr-${ri}`} path={rp}>
           <Paint style="stroke" strokeWidth={2} color={`rgba(99,102,241,${(ring.radius/bh.pullRadius*0.4).toFixed(2)})`} />
-        </Path>
+        </Path>}
       );
     });
     // Particle trails
@@ -1230,14 +1230,14 @@ export default function GameScreen({
           r={Math.max(0.5, p.size * alpha * zoom)} color={`rgba(168,85,247,${alpha.toFixed(2)})`} />;
       })
     );
-    const bhCenter = Skia.Path.Make(); bhCenter.addCircle(bhx, bhy, bhr);
+    const bhCenter = Skia?.Path ? Skia.Path.Make() : null; if (bhCenter) { bhCenter.addCircle(bhx, bhy, bhr); }
     return (
       <Group key={`bh-${i}`}>
         {ringElems}
         {particleElems}
-        <Path path={bhCenter}>
+        {bhCenter && <Path path={bhCenter}>
           <RadialGradient c={vec(bhx, bhy)} r={bhr} colors={['#000000','#050505','#1e1b4b']} positions={[0,0.5,1]} />
-        </Path>
+        </Path>}
         <Circle cx={bhx} cy={bhy} r={bhpr * 0.15} color="transparent">
           <Shadow dx={0} dy={0} blur={40} color="#a855f7" />
         </Circle>
@@ -1247,13 +1247,13 @@ export default function GameScreen({
 
   // Magnet waves
   const magnetWaveElements: React.ReactElement[] = e.magnetWaves.map((wave: any, i: number) => {
-    const wp = Skia.Path.Make(); wp.addCircle(sx(wave.x), sy(wave.y), sr(wave.radius));
+    const wp = Skia?.Path ? Skia.Path.Make() : null; wif (p) { p.addCircle(sx(wave.x), sy(wave.y), sr(wave.radius)); }
     return (
-      <Path key={`mw-${i}`} path={wp}>
+      {wp && <Path key={`mw-${i}`} path={wp}>
         <Paint style="stroke" strokeWidth={4} color={`rgba(236,72,153,${wave.alpha.toFixed(2)})`}>
           <Shadow dx={0} dy={0} blur={20} color="#ec4899" />
         </Paint>
-      </Path>
+      </Path>}
     );
   });
 
@@ -1266,45 +1266,45 @@ export default function GameScreen({
     if (r < 0.5) return;
     const elems: React.ReactElement[] = [];
     // Base gradient (planet)
-    const basePath = Skia.Path.Make(); basePath.addCircle(oscx, oscy, r);
+    const basePath = Skia?.Path ? Skia.Path.Make() : null; if (basePath) { basePath.addCircle(oscx, oscy, r); }
     elems.push(
-      <Path key="base" path={basePath}>
+      {basePath && <Path key="base" path={basePath}>
         <RadialGradient
           c={vec(oscx - r * 0.3, oscy - r * 0.35)} r={r}
           colors={[obj.color1, obj.color2, '#000000']} positions={[0, 0.5, 1]}
         />
-      </Path>
+      </Path>}
     );
     // Shine
-    const shinePath = Skia.Path.Make(); shinePath.addCircle(oscx, oscy, r);
+    const shinePath = Skia?.Path ? Skia.Path.Make() : null; if (shinePath) { shinePath.addCircle(oscx, oscy, r); }
     elems.push(
-      <Path key="shine" path={shinePath} opacity={0.45}>
+      {shinePath && <Path key="shine" path={shinePath} opacity={0.45}>
         <RadialGradient
           c={vec(oscx - r * 0.35, oscy - r * 0.38)} r={r * 0.55}
           colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
         />
-      </Path>
+      </Path>}
     );
     // Ring for rare
     if (obj.rare) {
-      const ringPath = Skia.Path.Make(); ringPath.addCircle(oscx, oscy, r * 1.7);
+      const ringPath = Skia?.Path ? Skia.Path.Make() : null; if (ringPath) { ringPath.addCircle(oscx, oscy, r * 1.7); }
       elems.push(
         <Group key="ring" origin={vec(oscx, oscy)} transform={[{ rotate: obj.rotation * 0.5 }, { scaleY: 0.35 }]}>
-          <Path path={ringPath} opacity={0.6}>
+          {ringPath && <Path path={ringPath} opacity={0.6}>
             <Paint style="stroke" strokeWidth={r * 0.18} color={obj.color1} />
-          </Path>
+          </Path>}
         </Group>
       );
     }
     // Death food pulsing ring
     if (obj.deathFood) {
       const dfr = r + sr(4 + Math.sin(obj.pulse * 4) * 3);
-      const dfPath = Skia.Path.Make(); dfPath.addCircle(oscx, oscy, dfr);
+      const dfPath = Skia?.Path ? Skia.Path.Make() : null; if (dfPath) { dfPath.addCircle(oscx, oscy, dfr); }
       elems.push(
-        <Path key="df" path={dfPath}>
+        {dfPath && <Path key="df" path={dfPath}>
           <Paint style="stroke" strokeWidth={2}
             color={`rgba(255,215,0,${(0.4 + Math.sin(obj.pulse * 4) * 0.3).toFixed(2)})`} />
-        </Path>
+        </Path>}
       );
     }
     foodElements.push(<Group key={`food-${i}`}>{elems}</Group>);
@@ -1331,15 +1331,15 @@ export default function GameScreen({
     const r = sr(p.radius + Math.sin(p.pulse) * 2);
     const px2 = sx(p.x), py2 = sy(p.y);
     const color = p.type==='magnet'?'#ec4899':p.type==='speed'?'#06b6d4':'#f97316';
-    const innerPath = Skia.Path.Make(); innerPath.addCircle(px2, py2, r * 0.7);
+    const innerPath = Skia?.Path ? Skia.Path.Make() : null; if (innerPath) { innerPath.addCircle(px2, py2, r * 0.7); }
     return (
       <Group key={`pu-${i}`}>
         <Circle cx={px2} cy={py2} r={r} color={color} opacity={0.3}>
           <Shadow dx={0} dy={0} blur={15} color={color} />
         </Circle>
-        <Path path={innerPath}>
+        {innerPath && <Path path={innerPath}>
           <RadialGradient c={vec(px2, py2)} r={r * 0.7} colors={['#000000', color]} />
-        </Path>
+        </Path>}
       </Group>
     );
   }).filter(Boolean);
@@ -1352,28 +1352,28 @@ export default function GameScreen({
     const isLeader = e.topLeader === bot.name;
     const color = bot.color || '#ff00ff';
     // Rotating arc path
-    const arcPath = Skia.Path.Make();
-    arcPath.addArc({ x: bcx - br + 6, y: bcy - br + 6, width: (br - 6) * 2, height: (br - 6) * 2 }, 0, 288);
-    const botBodyPath = Skia.Path.Make(); botBodyPath.addCircle(bcx, bcy, br);
-    const botBorderPath = Skia.Path.Make(); botBorderPath.addCircle(bcx, bcy, br);
+    const arcPath = Skia?.Path ? Skia.Path.Make() : null;
+    if (arcPath) { arcPath.addArc({ x: bcx - br + 6, y: bcy - br + 6, width: (br - 6) * 2, height: (br - 6) * 2 }, 0, 288); }
+    const botBodyPath = Skia?.Path ? Skia.Path.Make() : null; if (botBodyPath) { botBodyPath.addCircle(bcx, bcy, br); }
+    const botBorderPath = Skia?.Path ? Skia.Path.Make() : null; if (botBorderPath) { botBorderPath.addCircle(bcx, bcy, br); }
     return (
       <Group key={`bot-${i}`}>
         {/* Body gradient */}
-        <Path path={botBodyPath}>
+        {botBodyPath && <Path path={botBodyPath}>
           <RadialGradient c={vec(bcx, bcy)} r={br} colors={['#000000','#050505', color]} positions={[0,0.6,1]} />
-        </Path>
+        </Path>}
         {/* Rotating inner arc */}
         <Group origin={vec(bcx, bcy)} transform={[{ rotate: time }]}>
-          <Path path={arcPath}>
+          {arcPath && <Path path={arcPath}>
             <Paint style="stroke" strokeWidth={2} color="rgba(255,255,255,0.09)" />
-          </Path>
+          </Path>}
         </Group>
         {/* Border with glow */}
-        <Path path={botBorderPath}>
+        {botBorderPath && <Path path={botBorderPath}>
           <Paint style="stroke" strokeWidth={isLeader ? 5 : 3} color={isLeader ? '#facc15' : color}>
             {isLeader && <Shadow dx={0} dy={0} blur={20} color="#facc15" />}
           </Paint>
-        </Path>
+        </Path>}
         {/* Name tag */}
         {font && br > 10 && (
           <SkiaText x={bcx - 20} y={bcy - br - 6} text={bot.name?.slice(0,12)||''} font={fontSm || font}
@@ -1392,14 +1392,14 @@ export default function GameScreen({
   const arrowDist  = psr + sr(25);
   const arrowX     = pcx + Math.cos(dirAngle) * arrowDist;
   const arrowY     = pcy + Math.sin(dirAngle) * arrowDist;
-  const arrowPath  = Skia.Path.Make();
-  arrowPath.moveTo(10 * zoom, 0); arrowPath.lineTo(-6 * zoom, -6 * zoom); arrowPath.lineTo(-6 * zoom, 6 * zoom); arrowPath.close();
-  const playerBodyPath = Skia.Path.Make(); playerBodyPath.addCircle(pcx, pcy, psr);
-  const playerArcPath  = Skia.Path.Make();
-  playerArcPath.addArc({ x: pcx - psr + 6, y: pcy - psr + 6, width: (psr - 6) * 2, height: (psr - 6) * 2 }, 0, 288);
-  const playerOuterPath = Skia.Path.Make(); playerOuterPath.addCircle(pcx, pcy, psr + sr(25));
-  const playerPulsePath = Skia.Path.Make(); playerPulsePath.addCircle(pcx, pcy, Math.max(0.5, playerPulseR));
-  const playerBorderPath = Skia.Path.Make(); playerBorderPath.addCircle(pcx, pcy, psr);
+  const arrowPath  = Skia?.Path ? Skia.Path.Make() : null;
+  if (arrowPath) { arrowPath.moveTo(10 * zoom, 0); } if (arrowPath) { arrowPath.lineTo(-6 * zoom, -6 * zoom); } if (arrowPath) { arrowPath.lineTo(-6 * zoom, 6 * zoom); } if (arrowPath) { arrowPath.close(); }
+  const playerBodyPath = Skia?.Path ? Skia.Path.Make() : null; if (playerBodyPath) { playerBodyPath.addCircle(pcx, pcy, psr); }
+  const playerArcPath  = Skia?.Path ? Skia.Path.Make() : null;
+  if (playerArcPath) { playerArcPath.addArc({ x: pcx - psr + 6, y: pcy - psr + 6, width: (psr - 6) * 2, height: (psr - 6) * 2 }, 0, 288); }
+  const playerOuterPath = Skia?.Path ? Skia.Path.Make() : null; if (playerOuterPath) { playerOuterPath.addCircle(pcx, pcy, psr + sr(25)); }
+  const playerPulsePath = Skia?.Path ? Skia.Path.Make() : null; if (playerPulsePath) { playerPulsePath.addCircle(pcx, pcy, Math.max(0.5, playerPulseR)); }
+  const playerBorderPath = Skia?.Path ? Skia.Path.Make() : null; if (playerBorderPath) { playerBorderPath.addCircle(pcx, pcy, psr); }
 
   // ─── Return ───────────────────────────────────────────────────────────────
 
@@ -1419,28 +1419,28 @@ export default function GameScreen({
         {starElements}
 
         {/* World border overlay (darken outside world) */}
-        <Path path={overlayPath} color="rgba(0,0,0,0.6)" />
+        {overlayPath && {overlayPath && <Path path={overlayPath} color="rgba(0,0,0,0.6)" />}
 
         {/* World border stroke */}
-        <Path path={borderPath}>
+        {borderPath && <Path path={borderPath}>
           <Paint style="stroke" strokeWidth={sr(20)} color="rgba(168,85,247,0.4)">
             <Shadow dx={0} dy={0} blur={30} color="#a855f7" />
           </Paint>
-        </Path>
+        </Path>}}
 
         {/* Survival zone overlay */}
-        {survivalOverlay && <Path path={survivalOverlay} color="rgba(0,0,0,0.55)" />}
+        {survivalOverlay && {survivalOverlay && {survivalOverlay && <Path path={survivalOverlay} color="rgba(0,0,0,0.55)" />}}
         {survivalBorderPath && (
-          <Path path={survivalBorderPath}>
+          {survivalBorderPath && <Path path={survivalBorderPath}>
             <Paint style="stroke" strokeWidth={6} color="rgba(255,0,0,0.7)">
               <Shadow dx={0} dy={0} blur={30} color="red" />
             </Paint>
-          </Path>
+          </Path>}}
         )}
         {survivalNextPath && (
-          <Path path={survivalNextPath}>
+          {survivalNextPath && <Path path={survivalNextPath}>
             <Paint style="stroke" strokeWidth={3} color="rgba(255,255,255,0.8)" strokeDashArray={[10,10]} />
-          </Path>
+          </Path>}
         )}
 
         {/* Danger zones */}
@@ -1465,33 +1465,33 @@ export default function GameScreen({
         {botElements}
 
         {/* Player body */}
-        <Path path={playerBodyPath}>
+        {playerBodyPath && <Path path={playerBodyPath}>
           <RadialGradient c={vec(pcx,pcy)} r={psr} colors={['#000000','#050505','#1e1b4b']} positions={[0,0.5,1]} />
-        </Path>
+        </Path>}
         {/* Player rotating arcs */}
         <Group origin={vec(pcx, pcy)} transform={[{ rotate: time }]}>
-          <Path path={playerArcPath}>
+          {playerArcPath && <Path path={playerArcPath}>
             <Paint style="stroke" strokeWidth={2} color="rgba(168,85,247,0.18)" />
-          </Path>
+          </Path>}
         </Group>
         {/* Player outer circle */}
-        <Path path={playerOuterPath}>
+        {playerOuterPath && <Path path={playerOuterPath}>
           <Paint style="stroke" strokeWidth={2} color="rgba(255,255,255,0.1)" />
-        </Path>
+        </Path>}
         {/* Player pulse ring */}
-        <Path path={playerPulsePath}>
+        {playerPulsePath && <Path path={playerPulsePath}>
           <Paint style="stroke" strokeWidth={3} color="rgba(255,255,255,0.08)" />
-        </Path>
+        </Path>}
         {/* Player border */}
-        <Path path={playerBorderPath}>
+        {playerBorderPath && <Path path={playerBorderPath}>
           <Paint style="stroke" strokeWidth={isPlayerLeader ? 6 : 4}
             color={player.spawnShield > 0 ? '#22d3ee' : isPlayerLeader ? '#facc15' : player.ringColor}>
             <Shadow dx={0} dy={0} blur={20} color={isPlayerLeader ? '#facc15' : '#a855f7'} />
           </Paint>
-        </Path>
+        </Path>}
         {/* Direction arrow */}
         <Group transform={[{ translateX: arrowX }, { translateY: arrowY }, { rotate: dirAngle }]}>
-          <Path path={arrowPath} color="#ffffff" />
+          {arrowPath && <Path path={arrowPath} color="#ffffff" />}
         </Group>
       </Canvas>
 

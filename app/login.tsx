@@ -34,17 +34,21 @@ function NebulaBg() {
     return () => { alive = false; };
   }, []);
 
-  const bgPath = Skia.Path.Make();
-  bgPath.addRect({ x: 0, y: 0, width: W, height: H });
+  const bgPath = Skia?.Path ? Skia.Path.Make() : null;
+  if (bgPath) {
+    bgPath.addRect({ x: 0, y: 0, width: W, height: H });
+  }
 
   return (
     <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
       <Canvas style={{ flex: 1 }}>
         {/* Dark gradient */}
-        <Path path={bgPath}>
-          <RadialGradient c={vec(W / 2, H / 2)} r={W * 0.9}
-            colors={['#1a0035', '#0a0020', '#000010']} />
-        </Path>
+        {bgPath && (
+          <Path path={bgPath}>
+            <RadialGradient c={vec(W / 2, H / 2)} r={W * 0.9}
+              colors={['#1a0035', '#0a0020', '#000010']} />
+          </Path>
+        )}
         {/* Stars */}
         {stars.current.map((s, i) => (
           <Circle key={i} cx={s.x} cy={s.y} r={Math.max(0.4, s.r)}

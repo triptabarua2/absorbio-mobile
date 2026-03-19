@@ -61,15 +61,19 @@ function SpaceBackground() {
     return () => { alive = false; };
   }, []);
 
-  const bgPath = Skia.Path.Make();
-  bgPath.addRect({ x: 0, y: 0, width: W, height: H });
+  const bgPath = Skia?.Path ? Skia.Path.Make() : null;
+  if (bgPath) {
+    bgPath.addRect({ x: 0, y: 0, width: W, height: H });
+  }
 
   return (
     <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
       <Canvas style={{ flex: 1 }}>
-        <Path path={bgPath}>
-          <RadialGradient c={vec(W / 2, H / 2)} r={W * 0.8} colors={['#1a0b2e', '#050015']} />
-        </Path>
+        {bgPath && (
+          <Path path={bgPath}>
+            <RadialGradient c={vec(W / 2, H / 2)} r={W * 0.8} colors={['#1a0b2e', '#050015']} />
+          </Path>
+        )}
         {stars.current.map((s, i) => (
           <Circle key={i} cx={s.x} cy={s.y} r={s.r}
             color={`rgba(255,255,255,${s.alpha.toFixed(2)})`} />
