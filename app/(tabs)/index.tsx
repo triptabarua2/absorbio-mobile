@@ -18,6 +18,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 import { saveUserData } from '@/lib/firebase-db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ProfileModal } from '@/components/ProfileCard';
 import {
   User, Gem, Coins, CalendarDays, Settings as SettingsIcon,
   Palette, ChevronLeft, ChevronRight, Infinity as InfinityIcon,
@@ -121,6 +122,7 @@ export default function HomeScreen() {
   const [modeIndex, setModeIndex] = useState(0);
   const [appLoaded, setAppLoaded] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const loaderOpacity = useRef(new Animated.Value(1)).current;
   const breathAnim = useRef(new Animated.Value(0)).current;
@@ -194,17 +196,9 @@ export default function HomeScreen() {
     <View style={S.root}>
       <SpaceBackground />
 
-      {/* Back Button */}
-      <TouchableOpacity 
-        style={{ position: 'absolute', top: 50, left: 20, zIndex: 100, padding: 10 }} 
-        onPress={() => router.back()}
-      >
-        <ChevronLeft color="#fff" size={30} />
-      </TouchableOpacity>
-
       {/* ── TOP BAR ── */}
-      <View style={[S.topBar, { marginLeft: 50 }]}>
-        <TouchableOpacity style={S.profilePill}>
+      <View style={S.topBar}>
+        <TouchableOpacity style={S.profilePill} onPress={() => setProfileOpen(true)}>
           <View style={S.avatarCircle}>
             <User size={18} color="#9ca3af" />
           </View>
@@ -337,6 +331,17 @@ export default function HomeScreen() {
           <ActivityIndicator size="large" color="#a855f7" />
         </Animated.View>
       )}
+
+      {/* ── PROFILE MODAL ── */}
+      <ProfileModal
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        name={userData?.name || 'Cosmic Explorer'}
+        level={level}
+        xp={xp}
+        xpNeeded={xpNeeded}
+        coins={balance}
+      />
     </View>
   );
 }
