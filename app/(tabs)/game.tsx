@@ -1293,23 +1293,23 @@ export default function GameScreen({
     const elems: React.ReactElement[] = [];
     // Base gradient (planet)
     const basePath = Skia?.Path ? Skia.Path.Make() : null; if (basePath) { basePath.addCircle(oscx, oscy, r); }
-    elems.push(
-      {basePath && <Path key="base" path={basePath}>
+    if (basePath) elems.push(
+      <Path key="base" path={basePath}>
         <RadialGradient
           c={vec(oscx - r * 0.3, oscy - r * 0.35)} r={r}
           colors={[obj.color1, obj.color2, '#000000']} positions={[0, 0.5, 1]}
         />
-      </Path>}
+      </Path>
     );
     // Shine
     const shinePath = Skia?.Path ? Skia.Path.Make() : null; if (shinePath) { shinePath.addCircle(oscx, oscy, r); }
-    elems.push(
-      {shinePath && <Path key="shine" path={shinePath} opacity={0.45}>
+    if (shinePath) elems.push(
+      <Path key="shine" path={shinePath} opacity={0.45}>
         <RadialGradient
           c={vec(oscx - r * 0.35, oscy - r * 0.38)} r={r * 0.55}
           colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
         />
-      </Path>}
+      </Path>
     );
     // Ring for rare
     if (obj.rare) {
@@ -1326,11 +1326,11 @@ export default function GameScreen({
     if (obj.deathFood) {
       const dfr = r + sr(4 + Math.sin(obj.pulse * 4) * 3);
       const dfPath = Skia?.Path ? Skia.Path.Make() : null; if (dfPath) { dfPath.addCircle(oscx, oscy, dfr); }
-      elems.push(
-        {dfPath && <Path key="df" path={dfPath}>
+      if (dfPath) elems.push(
+        <Path key="df" path={dfPath}>
           <Paint style="stroke" strokeWidth={2}
             color={`rgba(255,215,0,${(0.4 + Math.sin(obj.pulse * 4) * 0.3).toFixed(2)})`} />
-        </Path>}
+        </Path>
       );
     }
     foodElements.push(<Group key={`food-${i}`}>{elems}</Group>);
