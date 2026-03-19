@@ -29,6 +29,17 @@ export interface UserData {
     speed?: number;
     double?: number;
   };
+  // Game stats — Firebase-এ save হয় তাই app delete করলেও থাকে
+  stats?: {
+    totalScore:      number;
+    totalKills:      number;
+    totalMass:       number;
+    bestMass:        number;
+    highestTime:     number;
+    totalPlayedTime: number;
+    totalGames:      number;
+    totalWins:       number;
+  };
 }
 
 /**
@@ -186,3 +197,44 @@ export const initializeUserData = async (
   await saveUserData(uid, userData);
   return userData;
 };
+
+/**
+ * Update game stats in Firestore (merged/incremented)
+ * App delete করলেও এই data থাকবে
+ */
+export async function updateGameStats(
+  uid: string,
+  newStats: {
+    totalScore:      number;
+    totalKills:      number;
+    totalMass:       number;
+    bestMass:        number;
+    highestTime:     number;
+    totalPlayedTime: number;
+    totalWins:       number;
+  }
+): Promise<void> {
+  if (!uid) return;
+  const db2 = await getDb();
+  const userRef = doc(db, 'absorbio_users', uid);
+  try {
+    // First get current stats to merge properly
+    const snap = await getDoc(userRef);
+    const current = snap.exists() ? (snap.data()?.stats ?? {}) : {};
+
+    const merged = {
+      totalScore:      (current.totalScore      || 0) + newStats.totalScore,
+      totalKills:      (current.totalKills      || 0) + newStats.totalKills,
+      totalMass:       (current.totalMass       || 0) + newStats.totalMass,
+      bestMass:        Math.max(current.bestMass || 0, newStats.bestMass),
+      highestTime:     Math.max(current.highestTime || 0, newStats.highestTime),
+      totalPlayedTime: (current.totalPlayedTime || 0) + newStats.totalPlayedTime,
+      totalGames:      (current.totalGames      || 0) + 1,
+      totalWins:       (current.totalWins       || 0) + newStats.totalWins,
+    };
+
+    await setDoc(userRef, { stats: merged }, { merge: true });
+  } catch (error) {
+    console.error('[Firebase] Failed to update game stats:', error);
+  }
+}
