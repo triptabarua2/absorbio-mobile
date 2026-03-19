@@ -269,7 +269,8 @@ export class BlackholeEngine {
       if (this.currentEvent === 'zone') {
         this.gameState.dangerZones = [{
           id: 'dz-1', x: Math.random() * this.worldSize, y: Math.random() * this.worldSize,
-          radius: 300, baseRadius: 300, pulse: 0, pulseSpeed: 0.05, vx: 1, vy: 1, type: 'dangerZone'
+          radius: 300, baseRadius: 300, pulse: 0, pulseSpeed: 0.05, vx: 1, vy: 1, type: 'dangerZone',
+          mass: 0
         }];
       } else {
         this.gameState.blackHoles = [{

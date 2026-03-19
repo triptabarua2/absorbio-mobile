@@ -134,7 +134,7 @@ export default function HomeScreen() {
         Animated.timing(breathAnim, { toValue: 0, duration: 2000, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
       ])
     ).start();
-  }, []);
+  }, [breathAnim]);
 
   const breathScale = breathAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.05] });
   const glowOpacity = breathAnim.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.7] });
@@ -441,10 +441,9 @@ const S = StyleSheet.create({
   modeValue: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   playBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'linear-gradient(90deg, #7c3aed, #db2777)', // Fallback for native
     paddingHorizontal: 30, paddingVertical: 12, borderRadius: 15,
     shadowColor: '#a855f7', shadowOffset: { width: 0, height: 0 }, shadowRadius: 15, shadowOpacity: 0.6,
-    backgroundColor: '#8b5cf6', // Actual background
+    backgroundColor: '#8b5cf6',
   },
   playIconCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
   playTriangle: {

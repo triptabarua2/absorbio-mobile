@@ -12,7 +12,7 @@ import {
 import {
   Canvas, Circle, Path, Group, Rect, Text as SkiaText,
   useFont, vec, Shadow, BlurMask, Skia, Paint, FillType,
-  RadialGradient, LinearGradient,
+  RadialGradient, LinearGradient, DashPathEffect,
 } from '@shopify/react-native-skia';
 import { useAuth } from '@/lib/auth-context';
 import { updateStats } from '@/lib/firebase-db';
@@ -1072,6 +1072,8 @@ export default function GameScreen({
   }, [
     gameState, spawnObject, spawnObjectNear, spawnObjectClose, spawnObjectGlobal,
     spawnObjectInZone, spawnPowerup, spawnCoin, addCoins, setXp, user,
+    setScore, setCoinsCollected, setDeathFeed, setAliveCount, setRocketTimer2,
+    setMass, setInstability, triggerGameOver,
   ]);
 
   // ─── Game loop ────────────────────────────────────────────────────────────
@@ -1163,7 +1165,7 @@ export default function GameScreen({
   // Orbit rings (background decoration)
   const time        = performance.now() * 0.0005;
   const orbitSpacing = 800;
-  const orbitRings: React.ReactElement[] = [];
+  const orbitRings: (React.ReactElement | null)[] = [];
   const oStartX = Math.floor((player.x - W / zoom) / orbitSpacing) * orbitSpacing;
   const oStartY = Math.floor((player.y - H / zoom) / orbitSpacing) * orbitSpacing;
   for (let ox = oStartX - orbitSpacing; ox < player.x + W / zoom + orbitSpacing; ox += orbitSpacing) {
@@ -1184,7 +1186,7 @@ export default function GameScreen({
   }
 
   // Stars
-  const starElements: React.ReactElement[] = [];
+  const starElements: (React.ReactElement | null)[] = [];
   const viewW = W / zoom + 200, viewH = H / zoom + 200;
   e.stars.forEach((star: any, i: number) => {
     if (Math.abs(star.x - player.x) > viewW || Math.abs(star.y - player.y) > viewH) return;
@@ -1223,7 +1225,7 @@ export default function GameScreen({
   }
 
   // Danger zone paths
-  const dangerZoneElements: React.ReactElement[] = e.dangerZones.map((zone: any, i: number) => {
+  const dangerZoneElements: (React.ReactElement | null)[] = e.dangerZones.map((zone: any, i: number) => {
     const cr = zone.baseRadius + Math.sin(zone.pulse) * 40;
     const intensity = (Math.sin(zone.pulse) + 1) / 2;
     const p = Skia?.Path ? Skia.Path.Make() : null; if (p) { p.addCircle(sx(zone.x), sy(zone.y), sr(cr)); }
@@ -1236,7 +1238,7 @@ export default function GameScreen({
   });
 
   // Black hole rendering
-  const blackHoleElements: React.ReactElement[] = e.blackHoles.map((bh: any, i: number) => {
+  const blackHoleElements: (React.ReactElement | null)[] = e.blackHoles.map((bh: any, i: number) => {
     const bhx = sx(bh.x), bhy = sy(bh.y), bhr = sr(bh.radius), bhpr = sr(bh.pullRadius);
     const ringElems = (bh.rings || []).map((ring: any, ri: number) => {
       const rp = Skia?.Path ? Skia.Path.Make() : null; if (rp) { rp.addCircle(bhx, bhy, sr(ring.radius)); }
@@ -1271,7 +1273,7 @@ export default function GameScreen({
   });
 
   // Magnet waves
-  const magnetWaveElements: React.ReactElement[] = e.magnetWaves.map((wave: any, i: number) => {
+  const magnetWaveElements: (React.ReactElement | null)[] = e.magnetWaves.map((wave: any, i: number) => {
     const wp = Skia?.Path ? Skia.Path.Make() : null; if (wp) { wp.addCircle(sx(wave.x), sy(wave.y), sr(wave.radius)); }
     if (!wp) return null;
     return (
@@ -1284,13 +1286,13 @@ export default function GameScreen({
   });
 
   // Food / objects
-  const foodElements: React.ReactElement[] = [];
+  const foodElements: (React.ReactElement | null)[] = [];
   e.objects.forEach((obj: any, i: number) => {
     if (Math.abs(obj.x - player.x) > viewW || Math.abs(obj.y - player.y) > viewH) return;
     const oscx = sx(obj.x), oscy = sy(obj.y);
     const r    = sr(obj.radius + Math.sin(obj.pulse) * 1.5);
     if (r < 0.5) return;
-    const elems: React.ReactElement[] = [];
+    const elems: (React.ReactElement | null)[] = [];
     // Base gradient (planet)
     const basePath = Skia?.Path ? Skia.Path.Make() : null; if (basePath) { basePath.addCircle(oscx, oscy, r); }
     if (basePath) elems.push(
@@ -1337,7 +1339,7 @@ export default function GameScreen({
   });
 
   // Coins
-  const coinElements: React.ReactElement[] = e.coins.map((coin: any, i: number) => {
+  const coinElements: (React.ReactElement | null)[] = e.coins.map((coin: any, i: number) => {
     if (Math.abs(coin.x - player.x) > viewW || Math.abs(coin.y - player.y) > viewH) return null!;
     const cr = sr(coin.radius + Math.sin(coin.pulse) * 1.5);
     const ccx = sx(coin.x), ccy = sy(coin.y);
@@ -1352,7 +1354,7 @@ export default function GameScreen({
   }).filter(Boolean);
 
   // Powerups
-  const powerupElements: React.ReactElement[] = e.powerups.map((p: any, i: number) => {
+  const powerupElements: (React.ReactElement | null)[] = e.powerups.map((p: any, i: number) => {
     if (Math.abs(p.x - player.x) > viewW || Math.abs(p.y - player.y) > viewH) return null!;
     const r = sr(p.radius + Math.sin(p.pulse) * 2);
     const px2 = sx(p.x), py2 = sy(p.y);
@@ -1371,7 +1373,7 @@ export default function GameScreen({
   }).filter(Boolean);
 
   // Bots
-  const botElements: React.ReactElement[] = e.bots.filter((b: any) => b.alive).map((bot: any, i: number) => {
+  const botElements: (React.ReactElement | null)[] = e.bots.filter((b: any) => b.alive).map((bot: any, i: number) => {
     if (Math.abs(bot.x - player.x) > viewW + 200 || Math.abs(bot.y - player.y) > viewH + 200) return null!;
     const bcx = sx(bot.x), bcy = sy(bot.y), br = sr(bot.radius);
     if (br < 1) return null!;
@@ -1465,7 +1467,9 @@ export default function GameScreen({
         )}
         {survivalNextPath && (
           <Path path={survivalNextPath}>
-            <Paint style="stroke" strokeWidth={3} color="rgba(255,255,255,0.8)" strokeDashArray={[10,10]} />
+            <Paint style="stroke" strokeWidth={3} color="rgba(255,255,255,0.8)">
+              <DashPathEffect intervals={[10, 10]} />
+            </Paint>
           </Path>
         )}
 
