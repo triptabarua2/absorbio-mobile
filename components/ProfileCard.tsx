@@ -12,6 +12,7 @@ import {
   ScrollView, Animated, Easing, Share, Alert, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserData } from '@/lib/firebase-db';
 import {
   X, Trophy, Star, Coins, Zap, Shield, Target,
   Clock, Swords, Share2, Download, Crown,
@@ -57,8 +58,18 @@ export const formatTime = (s: number): string => {
   return parts.join(' ');
 };
 
-export const loadStats = async (): Promise<PlayerStats> => {
+export const loadStats = async (uid?: string): Promise<PlayerStats> => {
   try {
+    // Google login থাকলে Firebase থেকে load করো (app delete করলেও থাকবে)
+    if (uid) {
+      const firebaseData = await getUserData(uid);
+      if (firebaseData?.stats) {
+        // Firebase data পেলে AsyncStorage-এও sync করো
+        await AsyncStorage.setItem('bh_stats', JSON.stringify(firebaseData.stats));
+        return { ...DEFAULT_STATS, ...firebaseData.stats };
+      }
+    }
+    // Firebase না থাকলে AsyncStorage fallback
     const v = await AsyncStorage.getItem('bh_stats');
     if (v) return { ...DEFAULT_STATS, ...JSON.parse(v) };
   } catch {}
@@ -170,10 +181,11 @@ interface ProfileModalProps {
   xpNeeded:  number;
   coins:     number;
   gems?:     number;
+  uid?:      string;  // Firebase uid — দিলে cloud থেকে stats load হবে
 }
 
 export function ProfileModal({
-  visible, onClose, name, level, xp, xpNeeded, coins, gems = 0,
+  visible, onClose, name, level, xp, xpNeeded, coins, gems = 0, uid,
 }: ProfileModalProps) {
   const [stats, setStats] = useState<PlayerStats>(DEFAULT_STATS);
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -181,7 +193,7 @@ export function ProfileModal({
 
   useEffect(() => {
     if (visible) {
-      loadStats().then(setStats);
+      loadStats(uid).then(setStats);
       Animated.parallel([
         Animated.timing(fadeAnim,  { toValue: 1, duration: 250, useNativeDriver: true }),
         Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 10, useNativeDriver: true }),
