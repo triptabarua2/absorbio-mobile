@@ -195,7 +195,7 @@ export default function SettingsScreen() {
   );
 
   const Row = ({ icon: Icon, title, subtitle, onPress, right }: {
-    icon: any; title: string; subtitle?: string; onPress?: () => void; right?: React.ReactNode;
+    icon: React.ElementType; title: string; subtitle?: string; onPress?: () => void; right?: React.ReactNode;
   }) => (
     <TouchableOpacity style={S.row} onPress={onPress} disabled={!onPress && !right}>
       <View style={S.rowIcon}><Icon color="#a855f7" size={20} /></View>
@@ -767,7 +767,7 @@ const SE = StyleSheet.create({
     textAlign:'center', lineHeight:40, letterSpacing:3 },
 
   hudEl: { position:'absolute', borderRadius:12, alignItems:'center',
-    justifyContent:'center', backdropFilter:'blur(4px)' },
+    justifyContent:'center' },
   hudElTxt: { color:'#fff', fontWeight:'900', fontSize:9, letterSpacing:1, textTransform:'uppercase' },
 
   joyEl: { position:'absolute', alignItems:'center', justifyContent:'center',
