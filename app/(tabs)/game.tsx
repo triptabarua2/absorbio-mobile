@@ -1200,7 +1200,7 @@ export default function GameScreen({
   const overlayPath = Skia?.Path ? Skia.Path.Make() : null;
   if (overlayPath) { overlayPath.addRect({ x: 0, y: 0, width: W, height: H }); }
   if (overlayPath) { overlayPath.addCircle(worldSX, worldSY, worldSR); }
-  if (overlayPath) { overlayPath.setFillType(FillType.EvenOdd); }
+
   const borderPath = Skia?.Path ? Skia.Path.Make() : null;
   if (borderPath) { borderPath.addCircle(worldSX, worldSY, worldSR); }
 
@@ -1213,7 +1213,7 @@ export default function GameScreen({
     survivalOverlay = Skia?.Path ? Skia.Path.Make() : null;
     if (survivalOverlay) { survivalOverlay.addRect({ x: 0, y: 0, width: W, height: H }); }
     if (survivalOverlay) { survivalOverlay.addCircle(sx(s.centerX), sy(s.centerY), sr(s.currentRadius)); }
-    if (survivalOverlay) { survivalOverlay.setFillType(FillType.EvenOdd); }
+
     survivalBorderPath = Skia?.Path ? Skia.Path.Make() : null;
     if (survivalBorderPath) { survivalBorderPath.addCircle(sx(s.centerX), sy(s.centerY), sr(s.currentRadius)); }
     if (s.phase === 'preview') {
@@ -1229,8 +1229,8 @@ export default function GameScreen({
     const p = Skia?.Path ? Skia.Path.Make() : null; if (p) { p.addCircle(sx(zone.x), sy(zone.y), sr(cr)); }
     return (
       <Group key={`dz-${i}`}>
-        {p && {p && <Path path={p} color={`rgba(255,0,0,${(0.1 + intensity * 0.2).toFixed(2)})`} />}
-        <Path path={p}><Paint style="stroke" strokeWidth={3} color={`rgba(255,0,0,${(0.3+intensity*0.4).toFixed(2)})`} /></Path>}
+        {p && <Path path={p} color={`rgba(255,0,0,${(0.1 + intensity * 0.2).toFixed(2)})`} />}
+        {p && <Path path={p}><Paint style="stroke" strokeWidth={3} color={`rgba(255,0,0,${(0.3+intensity*0.4).toFixed(2)})`} /></Path>}
       </Group>
     );
   });
@@ -1239,11 +1239,12 @@ export default function GameScreen({
   const blackHoleElements: React.ReactElement[] = e.blackHoles.map((bh: any, i: number) => {
     const bhx = sx(bh.x), bhy = sy(bh.y), bhr = sr(bh.radius), bhpr = sr(bh.pullRadius);
     const ringElems = (bh.rings || []).map((ring: any, ri: number) => {
-      const rp = Skia?.Path ? Skia.Path.Make() : null; rif (p) { p.addCircle(bhx, bhy, sr(ring.radius)); }
+      const rp = Skia?.Path ? Skia.Path.Make() : null; if (rp) { rp.addCircle(bhx, bhy, sr(ring.radius)); }
+      if (!rp) return null;
       return (
-        {rp && <Path key={`bhr-${ri}`} path={rp}>
+        <Path key={`bhr-${ri}`} path={rp}>
           <Paint style="stroke" strokeWidth={2} color={`rgba(99,102,241,${(ring.radius/bh.pullRadius*0.4).toFixed(2)})`} />
-        </Path>}
+        </Path>
       );
     });
     // Particle trails
@@ -1271,13 +1272,14 @@ export default function GameScreen({
 
   // Magnet waves
   const magnetWaveElements: React.ReactElement[] = e.magnetWaves.map((wave: any, i: number) => {
-    const wp = Skia?.Path ? Skia.Path.Make() : null; wif (p) { p.addCircle(sx(wave.x), sy(wave.y), sr(wave.radius)); }
+    const wp = Skia?.Path ? Skia.Path.Make() : null; if (wp) { wp.addCircle(sx(wave.x), sy(wave.y), sr(wave.radius)); }
+    if (!wp) return null;
     return (
-      {wp && <Path key={`mw-${i}`} path={wp}>
+      <Path key={`mw-${i}`} path={wp}>
         <Paint style="stroke" strokeWidth={4} color={`rgba(236,72,153,${wave.alpha.toFixed(2)})`}>
           <Shadow dx={0} dy={0} blur={20} color="#ec4899" />
         </Paint>
-      </Path>}
+      </Path>
     );
   });
 
@@ -1443,28 +1445,28 @@ export default function GameScreen({
         {starElements}
 
         {/* World border overlay (darken outside world) */}
-        {overlayPath && {overlayPath && <Path path={overlayPath} color="rgba(0,0,0,0.6)" />}
+        {overlayPath && <Path path={overlayPath} color="rgba(0,0,0,0.6)" fillType="evenOdd" />}
 
         {/* World border stroke */}
         {borderPath && <Path path={borderPath}>
           <Paint style="stroke" strokeWidth={sr(20)} color="rgba(168,85,247,0.4)">
             <Shadow dx={0} dy={0} blur={30} color="#a855f7" />
           </Paint>
-        </Path>}}
+        </Path>}
 
         {/* Survival zone overlay */}
-        {survivalOverlay && {survivalOverlay && {survivalOverlay && <Path path={survivalOverlay} color="rgba(0,0,0,0.55)" />}}
+        {survivalOverlay && <Path path={survivalOverlay} color="rgba(0,0,0,0.55)" fillType="evenOdd" />}
         {survivalBorderPath && (
-          {survivalBorderPath && <Path path={survivalBorderPath}>
+          <Path path={survivalBorderPath}>
             <Paint style="stroke" strokeWidth={6} color="rgba(255,0,0,0.7)">
               <Shadow dx={0} dy={0} blur={30} color="red" />
             </Paint>
-          </Path>}}
+          </Path>
         )}
         {survivalNextPath && (
-          {survivalNextPath && <Path path={survivalNextPath}>
+          <Path path={survivalNextPath}>
             <Paint style="stroke" strokeWidth={3} color="rgba(255,255,255,0.8)" strokeDashArray={[10,10]} />
-          </Path>}
+          </Path>
         )}
 
         {/* Danger zones */}
