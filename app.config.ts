@@ -129,6 +129,11 @@ const config: ExpoConfig = {
     // reactCompiler disabled: experimental feature not yet fully compatible with New Architecture
     // reactCompiler: true,
   },
+  extra: {
+    eas: {
+      projectId: "d57d77ed-a7ee-480e-a9aa-99258704525d",
+    },
+  },
 };
 
 export default config;
