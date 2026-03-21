@@ -1,6 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -13,7 +15,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+// Use AsyncStorage persistence on native, default on web
+export const auth = Platform.OS === 'web'
+  ? initializeAuth(app)
+  : initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 export const facebookProvider = new FacebookAuthProvider();
